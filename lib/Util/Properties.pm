@@ -16,19 +16,24 @@ The main differences with CPAN existant Config::Properties and Data::Properties 
 
 =head1 VERSION
 
-Version 0.01
+Version 0.03
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 =head1 SYNOPSIS
 
+=begin text
+
 use Util::Properties;
 
- my $foo = Util::Properties->new();
-    ...
+my $prop = Util::Properties->new({file=>'file.properties'});
+my $xyz=$prop->prop_get('x.y.z');
+$prop->prop_set('w', -1);
+$prop->save();
 
+=end text
 
 =head1 FUNCTIONS
 
@@ -116,11 +121,11 @@ Save properties from $prop->file_name (comment have been forgotten)
 
 =head3 $DEFAULT_FILE_LOCKER
 
-If a file_locker is to be defined by default creator
+If a file_locker is to be defined by default creator [default is 1]
 
 =head3 $DEFAULT_FILE_ISMIRRORED
 
-If data in memory must be consistent with file (based on file maodification time);
+If data in memory must be consistent with file (based on file maodification time)  [default is 1]
 
 =head3 $VERBOSE
 
