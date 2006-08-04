@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: Util-Properties
-version: 0.03
+version: 0.04
 author:
   - |-
     Alexandre Masselot <alexandre.masselot@genebio.com>
@@ -15,5 +15,5 @@ requires:
 provides:
   Util::Properties:
     file: lib/Util/Properties.pm
-    version: 0.03
+    version: 0.04
 generated_by: Module::Build version 0.24

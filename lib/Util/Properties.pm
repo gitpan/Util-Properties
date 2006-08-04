@@ -16,11 +16,11 @@ The main differences with CPAN existant Config::Properties and Data::Properties 
 
 =head1 VERSION
 
-Version 0.03
+Version 0.04
 
 =cut
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 =head1 SYNOPSIS
 
@@ -135,6 +135,27 @@ verbose level;
 
 Alexandre Masselot, C<< <alexandre.masselot@genebio.com> >>
 
+=head1 TODO
+
+=head3 implement a '+=' notation (to have mult lines defined properties)
+
+=begin text
+
+prop.one=some
+prop.one+=thing
+
+=end text
+
+=head3 implement a dependencies between properties
+
+=begin text
+
+prop.one=something
+prop.two=other/${prop.one}-thing
+
+=end text
+
+
 =head1 BUGS
 
 Please report any bugs or feature requests to
@@ -233,6 +254,11 @@ sub AUTOMETHOD{
   return sub {
     $objref{$obj_ID}{$name}=$val; return $val} if($set);
   return sub {return $objref{$obj_ID}{$name}};
+}
+
+sub DEMOLISH{
+  my ($self, $obj_ID) = @_;
+  delete $objref{$obj_ID};
 }
 
 sub file_locker{
@@ -357,7 +383,7 @@ sub toSummaryString{
   my $self_id=shift;
   my $self=$objref{ident($self_id)};
 
-  my $ret="name=".$self_id->name."\n";
+  my $ret="name=".($self_id->name or 'NO_NAME')."\n";
   my %h=$self_id->prop_list;
   foreach (sort keys %h){
     $ret.="\t$_\t$h{$_}\n";
