@@ -2,7 +2,7 @@ package Util::Properties;
 
 #use warnings;
 use strict;
-use Carp;
+use Carp qw(croak carp confess cluck);
 
 =head1 NAME
 
@@ -16,11 +16,11 @@ The main differences with CPAN existant Config::Properties and Data::Properties 
 
 =head1 VERSION
 
-Version 0.04
+Version 0.05
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 =head1 SYNOPSIS
 
@@ -88,6 +88,10 @@ Set if  a file locker is to be used (or a file locker is you do not wish to use 
 =head3 $prop->file_locker();
 
 Get the file locker (or undef).
+
+=head3 $prop->file_isGhost([val])
+
+get/set is it is possible for the file not to exist (in this case, no problem not to save...)
 
 =head2 Properties values
 
@@ -241,7 +245,7 @@ sub BUILD{
   return $self;
 }
 
-our @attr=qw(name file_md5 file_name file_ismirrored);
+our @attr=qw(name file_md5 file_name file_ismirrored file_isGhost);
 our $attrStr=join '|', @attr;
 our $attrRE=qr/\b($attrStr)\b/;
 
@@ -263,7 +267,7 @@ sub DEMOLISH{
 
 sub file_locker{
   my $a0=shift;
-  my $self=$objref{ident($a0)} || $a0;
+  my $self=$objref{ident($a0)};
   my $val=shift;
 
   return $self->{file_locker}  unless($val);
@@ -303,7 +307,7 @@ sub prop_get{
   my $self=$objref{ident($self_id)};
 
   my $k=shift or croak "must prop_get on a defined property key";
-  if($self_id->file_ismirrored && $self_id->file_name && ($self_id->file_md5()ne file_md5_hex($self_id->file_name))){
+  if($self_id->file_ismirrored && $self_id->file_name && -f $self_id->file_name && ($self_id->file_md5()ne file_md5_hex($self_id->file_name))){
     warn "loading from [".$self_id->file_name."] because of file modified for  [$k]\n" if $VERBOSE >=1;
     $self_id->load();
   }
@@ -338,19 +342,23 @@ sub load{
 
   my $fname=$self_id->file_name;
   croak "cannot read file [$fname]" unless -r $fname;
-  
 
-  my $lockmgr=$self_id->file_locker;
-  $lockmgr->trylock("$fname") || croak "can't lock [$fname]: $!\n" if $lockmgr;
-  my @contents=io($fname)->slurp;
-  $self_id->file_md5(file_md5_hex($fname));
-  $lockmgr->unlock("$fname") || croak "can't unlock [$fname]: $!\n" if $lockmgr;
+  eval{
+    my $lockmgr=$self_id->file_locker;
+    $lockmgr->trylock("$fname") || croak "can't lock [$fname]: $!\n" if $lockmgr;
+    my @contents=io($fname)->slurp;
+    $self_id->file_md5(file_md5_hex($fname));
+    $lockmgr->unlock("$fname") || croak "can't unlock [$fname]: $!\n" if $lockmgr;
 
-  $self_id->prop_clean;
-  foreach(@contents){
-    next if /^#/;
-    next unless /^(\S+)\s*=\s*(.*?)\s*$/;
-    $self->{properties}{$1}=$2;
+    $self_id->prop_clean;
+    foreach(@contents){
+      next if /^#/;
+      next unless /^(\S+)\s*=\s*(.*?)\s*$/;
+      $self->{properties}{$1}=$2;
+    }
+  };
+  if($@){
+    croak $@ unless $self_id->file_isGhost;
   }
 }
 
@@ -360,9 +368,8 @@ sub save{
 
   my $fname=$self_id->file_name;
 
-  print STDERR "saving to [$fname]\n" if $VERBOSE >=2;
+  warn "saving to [$fname]\n" if $VERBOSE >=2;
   croak "cannot save file on undefined file" unless defined $fname;
-  croak "cannot write file [$fname]" unless -w $fname;
 
   my $contents;
   my %h=%{$self->{properties}};
@@ -371,10 +378,15 @@ sub save{
   }
 
   my $lockmgr=$self_id->file_locker;
-  $lockmgr->trylock("$fname") || croak "can't lock [$fname]: $!\n" if $lockmgr;
-  $contents > io($fname);
-  $self_id->file_md5(file_md5_hex($fname)) if $self_id->file_ismirrored;
-  $lockmgr->unlock("$fname") || croak "can't unlock [$fname]: $!\n" if $lockmgr;
+  eval{
+    $lockmgr->trylock("$fname") || croak "can't lock [$fname]: $!\n" if $lockmgr;
+    $contents > io($fname);
+    $self_id->file_md5(file_md5_hex($fname)) if $self_id->file_ismirrored;
+    $lockmgr->unlock("$fname") || croak "can't unlock [$fname]: $!\n" if $lockmgr;
+  };
+  if($@){
+    croak $@ unless $self_id->file_isGhost;
+  }
 }
 
 use overload '""' => \&toSummaryString;
@@ -383,7 +395,7 @@ sub toSummaryString{
   my $self_id=shift;
   my $self=$objref{ident($self_id)};
 
-  my $ret="name=".($self_id->name or 'NO_NAME')."\n";
+  my $ret="prop_name=".($self_id->name or 'NO_NAME')."\t".$self_id->file_name."\n";
   my %h=$self_id->prop_list;
   foreach (sort keys %h){
     $ret.="\t$_\t$h{$_}\n";
