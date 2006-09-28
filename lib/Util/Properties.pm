@@ -14,13 +14,10 @@ rimplement something like ava.util.Properties API.
 
 The main differences with CPAN existant Config::Properties and Data::Properties is file locking & autoload/autosave features
 
-=head1 VERSION
-
-Version 0.05
 
 =cut
 
-our $VERSION = '0.05';
+our $VERSION = '0.07';
 
 =head1 SYNOPSIS
 
@@ -89,7 +86,7 @@ Set if  a file locker is to be used (or a file locker is you do not wish to use 
 
 Get the file locker (or undef).
 
-=head3 $prop->file_isGhost([val])
+=head3 $prop->file_isghost([val])
 
 get/set is it is possible for the file not to exist (in this case, no problem not to save...)
 
@@ -178,154 +175,153 @@ This program is released under the following license: gpl
 
 =cut
 
-require Exporter;
-
-our (@ISA, @EXPORT, @EXPORT_OK);
-@ISA = qw(Exporter);
-
 our $DEFAULT_FILE_LOCKER=1;
 our $DEFAULT_FILE_ISMIRRORED=1;
 our $VERBOSE=0;
 
+use Object::InsideOut 'Exporter';
+BEGIN{
+  our @EXPORT = qw( &getUserList &getCGIUser );
+  our @EXPORT_OK = ();
+}
 
-@EXPORT = qw($DEFAULT_FILE_LOCKER $DEFAULT_FILE_ISMIRRORED $VERBOSE &new);
-@EXPORT_OK = ();
+my @_file_locker :Field(Accessor => '_file_locker', 'Type' => 'LockFile::Simple', Permission => 'private');
+my @_file_md5 :Field(Accessor => '_file_md5', Permission => 'private');
+my @file_ismirrored :Field(Accessor => 'file_ismirrored' );
+my @file_isghost :Field(Accessor => 'file_isghost');
+my @file_name :Field(Accessor => 'file_name');
+my @name :Field(Accessor => 'name' );
+my @_properties :Field( Accessor => '_properties', Permission => 'private');
 
-use IO::All;
-use Class::Std;
-
-my %objref : ATTR;
-
-sub BUILD{
-  my ($selfref, $obj_ID, $h) = @_;
-  #  my ($pkg, $h)=@_;
-
-  my $self={};
-  $objref{$obj_ID}=$self;
+my %init_args :InitArgs = (
+			   PROPERTIES=>qr/^prop(erties)?$/i,
+			   COPY=>qr/^co?py?$/i,
+			   FILE=>qr/^file$/i,
+			  );
+sub _init :Init{
+  my ($self, $h) = @_;
 
   if(ref($h)eq 'HASH'){
-    if ($h->{properties}){    #just a set of properties
-      $selfref->prop_clean;
-      foreach (keys %{$h->{properties}}){
-	$selfref->prop_set($_, $h->{properties}{$_});
+    if ($h->{PROPERTIES}){    #just a set of properties
+      $self->prop_clean;
+      foreach (keys %{$h->{PROPERTIES}}){
+	$self->prop_set($_, $h->{PROPERTIES}{$_});
       }
-      $selfref->file_locker($DEFAULT_FILE_LOCKER);
-      $selfref->file_ismirrored($DEFAULT_FILE_ISMIRRORED);
-    }elsif($h->{copy}){
-      my $src=$objref{ident($h->{copy})} || $h->{copy};
+      $self->file_locker($DEFAULT_FILE_LOCKER);
+      $self->file_ismirrored($DEFAULT_FILE_ISMIRRORED);
+    }elsif($h->{COPY}){
+      my $src= $h->{COPY};
       #copy constructor
-      $selfref->prop_clean;
-      foreach my $k (keys %$src){
-	if(ref ($src->{$k}) eq 'HASH'){
-	  my $hh=$src->{$k};
-	  $self->{$k}={}; #on se couvre if %$hh is empty;
-	  foreach (keys %$hh){
-	    $self->{$k}{$_}=$hh->{$_};
-	  }
-	}else{
-	  $self->{$k}=$src->{$k};
-	}
+      $self->prop_clean;
+      $self->_file_locker($src->_file_locker()) if $src->_file_locker();
+      $self->file_ismirrored($src->file_ismirrored());
+      $self->file_isghost($src->file_isghost());
+      $self->file_name($src->file_name());
+      $self->name($src->name());
+      my %p=$src->prop_list;
+      $self->prop_clean;
+      while(my ($k, $v)=each %p){
+	$self->prop_set($k, $v);
       }
-    }elsif($h->{file}){
+    }elsif($h->{FILE}){
       #thus $h is a file name;
-      $selfref->file_locker($DEFAULT_FILE_LOCKER);
-      $selfref->file_ismirrored($DEFAULT_FILE_ISMIRRORED);
-      $selfref->file_name($h->{file});
-      $selfref->load();
+      $self->file_locker($DEFAULT_FILE_LOCKER);
+      $self->file_ismirrored($DEFAULT_FILE_ISMIRRORED);
+      $self->file_name($h->{FILE});
+      $self->load();
     }elsif(scalar (keys %$h)){
       croak "cannot instanciate constructor if hahs key is not of (properties|copy|file)";
     }else{
-      $selfref->file_locker($DEFAULT_FILE_LOCKER);
-      $selfref->file_ismirrored($DEFAULT_FILE_ISMIRRORED);
-      $selfref->prop_clean;
+      $self->file_locker($DEFAULT_FILE_LOCKER);
+      $self->file_ismirrored($DEFAULT_FILE_ISMIRRORED);
+      $self->prop_clean;
     }
   }else{
-    die "empty BUILD constructor";
+    die "empty init :Init constructor";
   }
-  return $self;
+
 }
 
-our @attr=qw(name file_md5 file_name file_ismirrored file_isGhost);
-our $attrStr=join '|', @attr;
-our $attrRE=qr/\b($attrStr)\b/;
 
-sub AUTOMETHOD{
-  my ($self, $obj_ID, $val)=@_;
-  my $set=exists $_[2];
+#our @attr=qw(name file_md5 file_name file_ismirrored file_isghost);
+#our $attrStr=join '|', @attr;
+#our $attrRE=qr/\b($attrStr)\b/;
 
-  my $name=$_;
-  return undef unless $name=~$attrRE;
-  return sub {
-    $objref{$obj_ID}{$name}=$val; return $val} if($set);
-  return sub {return $objref{$obj_ID}{$name}};
-}
+#sub AUTOMETHOD{
+#  my ($self, $obj_ID, $val)=@_;
+#  my $set=exists $_[2];
+
+#  my $name=$_;
+#  return undef unless $name=~$attrRE;
+#  return sub {
+#    $objref{$obj_ID}{$name}=$val; return $val} if($set);
+#  return sub {return $objref{$obj_ID}{$name}};
+#}
 
 sub DEMOLISH{
   my ($self, $obj_ID) = @_;
-  delete $objref{$obj_ID};
 }
 
 sub file_locker{
+  my $self=shift;
   my $a0=shift;
-  my $self=$objref{ident($a0)};
+#  my $self=$objref{ident($a0)};
   my $val=shift;
 
-  return $self->{file_locker}  unless($val);
+  return $self->_file_locker()  unless($val);
 
   if(ref($val) eq 'LockFile::Simple'){
-    $self->{file_locker}=$val;
+    $self->_file_locker($val);
   }else{
     require LockFile::Simple;
-    $self->{file_locker} = LockFile::Simple->make(-format => '%f.lck',
-						  -max => 20,
-						  -delay => 1,
-						  -nfs => 1,
-						  -autoclean => 1
-						 );
+    $self->_file_locker(
+			LockFile::Simple->make(-format => '%f.lck',
+					       -max => 20,
+					       -delay => 1,
+					       -nfs => 1,
+					       -autoclean => 1
+					      )
+		       );
   }
-  return $self->{file_locker};
+  return $self->_file_locker();
 }
 
 ############### properties
 
 sub prop_set{
-  my $self_id=shift;
-  my $self=$objref{ident($self_id)};
+  my $self=shift;
 
   my ($k, $val)=@_;
   croak "must prop_set on a defined property key" unless $k;
   croak "cannot define a key=[$k]" if $k=~/[\s=]/;
 
-  $self->{properties}{$k}=$val;
-  if($self_id->file_ismirrored && $self_id->file_name){
-    $self_id->save();
+  $self->_properties()->{$k}=$val;
+  if($self->file_ismirrored && $self->file_name){
+    $self->save();
   }
 }
 
 sub prop_get{
-  my $self_id=shift;
-  my $self=$objref{ident($self_id)};
+  my $self=shift;
 
   my $k=shift or croak "must prop_get on a defined property key";
-  if($self_id->file_ismirrored && $self_id->file_name && -f $self_id->file_name && ($self_id->file_md5()ne file_md5_hex($self_id->file_name))){
-    warn "loading from [".$self_id->file_name."] because of file modified for  [$k]\n" if $VERBOSE >=1;
-    $self_id->load();
+  if($self->file_ismirrored && $self->file_name && -f $self->file_name && ($self->_file_md5() ne file_md5_hex($self->file_name))){
+    warn "loading from [".$self->file_name."] because of file modified for  [$k]\n" if $VERBOSE >=1;
+    $self->load();
   }
-  return $self->{properties}{$k};
+  return $self->_properties()->{$k};
 }
 
 sub prop_list{
-  my $self_id=shift;
-  my $self=$objref{ident($self_id)};
+  my $self=shift;
 
-  return %{$self->{properties}};
+  return %{$self->_properties()};
 }
 
 sub prop_clean{
-  my $self_id=shift;
-  my $self=$objref{ident($self_id)};
+  my $self=shift;
 
-  $self->{properties}={};
+  $self->_properties({});
 }
 
 
@@ -336,67 +332,64 @@ use IO::All;
 use Digest::MD5::File qw(file_md5_hex);
 
 sub load{
-  my $self_id=shift;
-  my $self=$objref{ident($self_id)};
+  my $self=shift;
 
 
-  my $fname=$self_id->file_name;
+  my $fname=$self->file_name;
   croak "cannot read file [$fname]" unless -r $fname;
 
   eval{
-    my $lockmgr=$self_id->file_locker;
+    my $lockmgr=$self->_file_locker;
     $lockmgr->trylock("$fname") || croak "can't lock [$fname]: $!\n" if $lockmgr;
     my @contents=io($fname)->slurp;
-    $self_id->file_md5(file_md5_hex($fname));
+    $self->_file_md5(file_md5_hex($fname));
     $lockmgr->unlock("$fname") || croak "can't unlock [$fname]: $!\n" if $lockmgr;
 
-    $self_id->prop_clean;
+    $self->prop_clean;
     foreach(@contents){
       next if /^#/;
       next unless /^(\S+)\s*=\s*(.*?)\s*$/;
-      $self->{properties}{$1}=$2;
+      $self->_properties()->{$1}=$2;
     }
   };
   if($@){
-    croak $@ unless $self_id->file_isGhost;
+    croak $@ unless $self->file_isghost;
   }
 }
 
 sub save{
-  my $self_id=shift;
-  my $self=$objref{ident($self_id)};
+  my $self=shift;
 
-  my $fname=$self_id->file_name;
+  my $fname=$self->file_name;
 
   warn "saving to [$fname]\n" if $VERBOSE >=2;
   croak "cannot save file on undefined file" unless defined $fname;
 
   my $contents;
-  my %h=%{$self->{properties}};
+  my %h=%{$self->_properties()};
   foreach (sort keys %h){
     $contents.="$_=$h{$_}\n";
   }
 
-  my $lockmgr=$self_id->file_locker;
+  my $lockmgr=$self->_file_locker;
   eval{
     $lockmgr->trylock("$fname") || croak "can't lock [$fname]: $!\n" if $lockmgr;
     $contents > io($fname);
-    $self_id->file_md5(file_md5_hex($fname)) if $self_id->file_ismirrored;
+    $self->_file_md5(file_md5_hex($fname)) if $self->file_ismirrored;
     $lockmgr->unlock("$fname") || croak "can't unlock [$fname]: $!\n" if $lockmgr;
   };
   if($@){
-    croak $@ unless $self_id->file_isGhost;
+    croak $@ unless $self->file_isghost;
   }
 }
 
 use overload '""' => \&toSummaryString;
 
 sub toSummaryString{
-  my $self_id=shift;
-  my $self=$objref{ident($self_id)};
+  my $self=shift;
 
-  my $ret="prop_name=".($self_id->name or 'NO_NAME')."\t".$self_id->file_name."\n";
-  my %h=$self_id->prop_list;
+  my $ret="prop_name=".($self->name or 'NO_NAME')."\t".($self->file_name or '')."\n";
+  my %h=$self->prop_list;
   foreach (sort keys %h){
     $ret.="\t$_\t$h{$_}\n";
   }

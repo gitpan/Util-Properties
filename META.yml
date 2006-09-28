@@ -1,19 +1,22 @@
---- #YAML:1.0
+---
 name: Util-Properties
-version: 0.05
+version: 0.07
 author:
-  - |-
-    Alexandre Masselot <alexandre.masselot@genebio.com>
+  - 'Alexandre Masselot <alexandre.masselot@genebio.com>'
 abstract: Java.util.properties like class
 license: gpl
+resources:
+  license: http://www.opensource.org/licenses/gpl-license.php
 requires:
-  Class::Std: 0
   Digest::MD5::File: 0
   IO::All: 0
   LockFile::Simple: 0
-  Test::More: 0
+  Object::InsideOut: 0
 provides:
   Util::Properties:
     file: lib/Util/Properties.pm
-    version: 0.05
-generated_by: Module::Build version 0.24
+    version: 0.07
+generated_by: Module::Build version 0.2805
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.2.html
+  version: 1.2
