@@ -17,7 +17,7 @@ The main differences with CPAN existant Config::Properties and Data::Properties 
 
 =cut
 
-our $VERSION = '0.08';
+our $VERSION = '0.11';
 
 =head1 SYNOPSIS
 
@@ -107,6 +107,10 @@ return a hash with all the properties
 =head3 $prop->prop_clean
 
 Clean the properties list;
+
+=head3 $prop->isEmpty();
+
+return true if the properties does not contain any fields
 
 =head2 I/O
 
@@ -324,6 +328,11 @@ sub prop_clean{
   $self->_properties({});
 }
 
+sub isEmpty{
+  my $self=shift;
+  my %h=$self->prop_list();
+  return  scalar(keys %h)==0;
+}
 
 
 ############### I/O

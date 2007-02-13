@@ -16,9 +16,11 @@ while(<fd>){
   $cgi_scripts{$_}=$_ if /^(cgi)\//;
 }
 
-my $builder = Module::Build->new(
+my $build = Module::Build->new(
     module_name         => 'Util::Properties',
-    license             => 'gpl',
+    license             => 'lgpl',
+    create_makefile_pl => 'traditional',
+    create_readme => 'README',
     dist_author         => 'Alexandre Masselot <alexandre.masselot@genebio.com>',
     dist_version_from   => 'lib/Util/Properties.pm',
     requires => {
@@ -33,5 +35,6 @@ my $builder = Module::Build->new(
     install_path => { cgi =>"blib/cgi/" },
     add_to_cleanup      => [ 'Util-Properties-*' ],
 );
-$builder->add_build_element('cgi');
-$builder->create_build_script();
+$build->add_build_element('cgi') || die "cannot add build element [cgi]";
+$build->prereq_failures() && $build->prereq_failures()->{requires}  && die "conflicts (missing requirem\ents?)";
+$build->create_build_script;

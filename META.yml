@@ -1,12 +1,12 @@
 ---
 name: Util-Properties
-version: 0.08
+version: 0.11
 author:
   - 'Alexandre Masselot <alexandre.masselot@genebio.com>'
 abstract: Java.util.properties like class
-license: gpl
+license: lgpl
 resources:
-  license: http://www.opensource.org/licenses/gpl-license.php
+  license: http://opensource.org/licenses/artistic-license.php
 requires:
   Digest::MD5::File: 0
   IO::All: 0
@@ -15,7 +15,7 @@ requires:
 provides:
   Util::Properties:
     file: lib/Util/Properties.pm
-    version: 0.08
+    version: 0.11
   Util::Properties::Combine:
     file: lib/Util/Properties/Combine.pm
 generated_by: Module::Build version 0.2805

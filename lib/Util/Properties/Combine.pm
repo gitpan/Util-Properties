@@ -54,6 +54,7 @@ use Util::Properties;
 {
   use Object::InsideOut qw(Util::Properties);
 
+  my @infoMessage :Field(Accessor => 'infoMessage');
   my %init_args :InitArgs = (
 			    );
   sub _init :Init{
@@ -115,7 +116,10 @@ use Util::Properties;
 
     foreach (keys %spl){
       next unless defined $ppl{$_};
-      return 0 if $spl{$_}<$ppl{$_};
+      if($spl{$_}<$ppl{$_}){
+	$self->infoMessage("$_: ($spl{$_}<$ppl{$_})");
+	return 0;
+      }
     }
     return 1;
   }
@@ -129,7 +133,10 @@ use Util::Properties;
 
     foreach (keys %spl){
       next unless defined $ppl{$_};
-      return 0 if $spl{$_}>$ppl{$_};
+      if($spl{$_}>$ppl{$_}){
+	$self->infoMessage("$_: ($spl{$_}>$ppl{$_})");
+	return 0;
+      }
     }
     return 1;
   }

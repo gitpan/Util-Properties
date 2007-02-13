@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 use strict;
-use Test::More tests => 9;
+use Test::More tests => 11;
 use File::Basename;
 my $dir=dirname $0;
 
@@ -12,8 +12,10 @@ use Util::Properties;
 
 my $prop=Util::Properties->new;
 ok($prop, "Util::Properties object / default constructor");
+ok($prop->isEmpty, "new prop is empty");
 $prop->prop_set('prop_a', -1);
 is($prop->prop_get('prop_a'), -1, "ok prop value");
+ok(!$prop->isEmpty, "filled prop is not empty anymore");
 
 $prop= Util::Properties->new(properties=>{prop_a=>1, prop_b=>'atchoum'});
 ok($prop, "Util::Properties object / from hash constructor");
