@@ -17,7 +17,7 @@ The main differences with CPAN existant Config::Properties and Data::Properties 
 
 =cut
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 =head1 SYNOPSIS
 
@@ -299,8 +299,9 @@ sub prop_set{
   croak "must prop_set on a defined property key" unless $k;
   croak "cannot define a key=[$k]" if $k=~/[\s=]/;
 
+  my $valOrig=$self->_properties()->{$k};
   $self->_properties()->{$k}=$val;
-  if($self->file_ismirrored && $self->file_name){
+  if($self->file_ismirrored && $self->file_name && $val!=$valOrig){
     $self->save();
   }
 }
@@ -357,7 +358,7 @@ sub load{
     $self->prop_clean;
     foreach(@contents){
       next if /^#/;
-      next unless /^(\S+)\s*=\s*(.*?)\s*$/;
+      next unless /^(\S+?)\s*=\s*(.*?)\s*$/;
       $self->_properties()->{$1}=$2;
     }
   };

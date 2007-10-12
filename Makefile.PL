@@ -2,16 +2,16 @@
 use ExtUtils::MakeMaker;
 WriteMakefile
 (
+          'PL_FILES' => {},
+          'INSTALLDIRS' => 'site',
           'NAME' => 'Util::Properties',
+          'EXE_FILES' => [],
           'VERSION_FROM' => 'lib/Util/Properties.pm',
           'PREREQ_PM' => {
-                           'Digest::MD5::File' => '0',
-                           'IO::All' => '0',
-                           'LockFile::Simple' => '0',
-                           'Object::InsideOut' => '0'
-                         },
-          'INSTALLDIRS' => 'site',
-          'EXE_FILES' => [],
-          'PL_FILES' => {}
+                           'IO::All' => 0,
+                           'Digest::MD5::File' => 0,
+                           'LockFile::Simple' => 0,
+                           'Object::InsideOut' => 0
+                         }
         )
 ;
