@@ -1,6 +1,6 @@
 ---
 name: Util-Properties
-version: 0.12
+version: 0.13
 author:
   - 'Alexandre Masselot <alexandre.masselot@genebio.com>'
 abstract: Java.util.properties like class
@@ -15,7 +15,7 @@ requires:
 provides:
   Util::Properties:
     file: lib/Util/Properties.pm
-    version: 0.12
+    version: 0.13
   Util::Properties::Combine:
     file: lib/Util/Properties/Combine.pm
 generated_by: Module::Build version 0.2808

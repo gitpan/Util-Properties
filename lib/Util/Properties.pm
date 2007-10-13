@@ -17,7 +17,7 @@ The main differences with CPAN existant Config::Properties and Data::Properties 
 
 =cut
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 =head1 SYNOPSIS
 
@@ -301,7 +301,7 @@ sub prop_set{
 
   my $valOrig=$self->_properties()->{$k};
   $self->_properties()->{$k}=$val;
-  if($self->file_ismirrored && $self->file_name && $val!=$valOrig){
+  if($self->file_ismirrored && $self->file_name && ($val ne $valOrig)){
     $self->save();
   }
 }
