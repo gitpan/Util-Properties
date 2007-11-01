@@ -17,7 +17,7 @@ The main differences with CPAN existant Config::Properties and Data::Properties 
 
 =cut
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 =head1 SYNOPSIS
 
@@ -338,7 +338,6 @@ sub isEmpty{
 
 ############### I/O
 
-use IO::All;
 use Digest::MD5::File qw(file_md5_hex);
 
 sub load{
@@ -351,7 +350,9 @@ sub load{
   eval{
     my $lockmgr=$self->_file_locker;
     $lockmgr->trylock("$fname") || croak "can't lock [$fname]: $!\n" if $lockmgr;
-    my @contents=io($fname)->slurp;
+    open (FD, "<$fname") or die "cannot topen for reading [$fname]: $!";
+    my @contents=<FD>;
+    close FD;
     $self->_file_md5(file_md5_hex($fname));
     $lockmgr->unlock("$fname") || croak "can't unlock [$fname]: $!\n" if $lockmgr;
 
@@ -384,7 +385,9 @@ sub save{
   my $lockmgr=$self->_file_locker;
   eval{
     $lockmgr->trylock("$fname") || croak "can't lock [$fname]: $!\n" if $lockmgr;
-    $contents > io($fname);
+    open (FD, ">$fname") or die "cannot topen for writing [$fname]: $!";
+    print FD $contents;
+    close FD;
     $self->_file_md5(file_md5_hex($fname)) if $self->file_ismirrored;
     $lockmgr->unlock("$fname") || croak "can't unlock [$fname]: $!\n" if $lockmgr;
   };
