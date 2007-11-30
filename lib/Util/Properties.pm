@@ -17,7 +17,7 @@ The main differences with CPAN existant Config::Properties and Data::Properties 
 
 =cut
 
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 
 =head1 SYNOPSIS
 

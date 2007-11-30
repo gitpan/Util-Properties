@@ -43,7 +43,7 @@ my @props;
 my $n=5;
 foreach(1..$n){
   my $p=  Util::Properties->new(file=>$fname);
-  $p->name("prop#$_");
+  $p->name("prop-$_");
   push @props,$p;
 }
 my $m=3;
