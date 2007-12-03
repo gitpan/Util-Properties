@@ -1,5 +1,6 @@
 #!/usr/bin/env perl
 use strict;
+use warnings;
 use Test::More tests => 11;
 use File::Basename;
 my $dir=dirname $0;
@@ -41,15 +42,15 @@ $prop2->save();
 
 my @props;
 my $n=5;
-foreach(1..$n){
+foreach my $i(1..$n){
   my $p=  Util::Properties->new(file=>$fname);
-  $p->name("prop-$_");
+  $p->name("prop-$i");
   push @props,$p;
 }
 my $m=3;
-foreach(1..$m){
-  foreach (@props){
-    $_->prop_set('prop_a', $_->prop_get('prop_a')+1);
+foreach (1..$m){
+  foreach my $p (@props){
+    $p->prop_set('prop_a', $p->prop_get('prop_a')+1);
 #    print "----\n$_+++++\n";;
   }
 }
