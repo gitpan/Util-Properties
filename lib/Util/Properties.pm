@@ -17,7 +17,7 @@ The main differences with CPAN existant Config::Properties and Data::Properties 
 
 =cut
 
-our $VERSION = '0.16';
+our $VERSION = '0.17';
 
 =head1 SYNOPSIS
 
@@ -293,6 +293,7 @@ sub file_locker{
 ############### properties
 
 sub prop_set{
+  local $_;
   my $self=shift;
 
   my ($k, $val)=@_;
@@ -307,6 +308,7 @@ sub prop_set{
 }
 
 sub prop_get{
+  local $_;
   my $self=shift;
 
   my $k=shift or croak "must prop_get on a defined property key";
