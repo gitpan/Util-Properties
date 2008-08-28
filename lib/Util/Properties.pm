@@ -17,7 +17,7 @@ The main differences with CPAN existant Config::Properties and Data::Properties 
 
 =cut
 
-our $VERSION = '0.17';
+our $VERSION = '0.18';
 
 =head1 SYNOPSIS
 
@@ -201,6 +201,7 @@ my %init_args :InitArgs = (
 			   PROPERTIES=>qr/^prop(erties)?$/i,
 			   COPY=>qr/^co?py?$/i,
 			   FILE=>qr/^file$/i,
+			   NEWFILE=>qr/^newfile$/i,
 			  );
 sub _init :Init{
   my ($self, $h) = @_;
@@ -232,7 +233,11 @@ sub _init :Init{
       $self->file_locker($DEFAULT_FILE_LOCKER);
       $self->file_ismirrored($DEFAULT_FILE_ISMIRRORED);
       $self->file_name($h->{FILE});
-      $self->load();
+      unless($h->{NEWFILE} && ! -f $h->{FILE}){
+	$self->load() ;
+      }else{
+	$self->_properties({});
+      }
     }elsif(scalar (keys %$h)){
       croak "cannot instanciate constructor if hahs key is not of (properties|copy|file)";
     }else{
@@ -347,7 +352,7 @@ sub load{
 
 
   my $fname=$self->file_name;
-  croak "cannot read file [$fname]" unless -r $fname;
+  Carp::confess "cannot read file [$fname]" unless -r $fname;
 
   eval{
     my $lockmgr=$self->_file_locker;
